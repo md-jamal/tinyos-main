@@ -1,0 +1,5 @@
+COMPONENT=TestAppC
+CFLAGS += -I$(TOSDIR)/lib/printf
+#CFLAGS += -DDEBUG_PRINTF
+include $(MAKERULES)
+

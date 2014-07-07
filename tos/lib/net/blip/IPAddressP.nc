@@ -22,7 +22,6 @@
 
 /*
  * @author Stephen Dawson-Haggerty <stevedh@cs.berkeley.edu>
- * @author Mohammad Jamal Mohiuddin <mjmohiuddin@cdac.in> bug fixes
  */
 
 #include <lib6lowpan/lib6lowpan.h>
@@ -133,6 +132,45 @@ module IPAddressP {
          (addr->s6_addr[1] & 0x0f) <= 2))
       return TRUE;
     return FALSE;
+  }
+
+  command error_t IPAddress.setAddress(struct in6_addr *addr) {
+    m_addr = *addr;
+#ifdef BLIP_DERIVE_SHORTADDRS
+    if (m_addr.s6_addr[8] == 0 &&
+        m_addr.s6_addr[9] == 0 &&
+        m_addr.s6_addr[10] == 0 &&
+        m_addr.s6_addr[11] == 0 &&
+        m_addr.s6_addr[12] == 0 &&
+        m_addr.s6_addr[13] == 0) {
+      call Ieee154Address.setShortAddr(ntohs(m_addr.s6_addr16[7]));
+      m_short_addr = TRUE;
+    } else {
+      call Ieee154Address.setShortAddr(0);
+      m_short_addr = FALSE;
+    }
+#endif
+
+    m_valid_addr = TRUE;
+    signal IPAddress.changed(TRUE);
+    return SUCCESS;
+  }
+
+
+ command bool IPAddress.getEUILLAddress(struct in6_addr *addr)
+  {
+	int i;
+	ieee154_laddr_t laddr = call Ieee154Address.getExtAddr();//getting the Extended Address
+
+	memclr(addr->s6_addr, 16);		//clearing the address passed
+	addr->s6_addr16[0] = htons(0xfe80);	// setting the prefix as fe80	
+	//copying  the EUI-64 into interface identifier 
+     	for (i = 0; i < 8; i++)
+        	addr->s6_addr[8+i] = laddr.data[7-i];
+      	addr->s6_addr[8] ^= 0x2;  /* toggle U/L bit */
+	
+	return TRUE;
+
   }
 
   command error_t SetIPAddress.setAddress(struct in6_addr *addr) {

@@ -21,4 +21,7 @@ configuration IPNeighborDiscoveryC {
   IPNeighborDiscoveryP.IPLower = IPLower;
   IPNeighborDiscoveryP.IPAddress -> IPAddressC.IPAddress;
   IPNeighborDiscoveryP.Ieee154Address -> Ieee154AddressC.Ieee154Address;
+
+  components NeighbrCacheC;
+  IPNeighborDiscoveryP.NeighbrCache->NeighbrCacheC;
 }

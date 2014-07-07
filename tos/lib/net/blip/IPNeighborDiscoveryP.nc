@@ -12,7 +12,6 @@
  * address resolution mechanisms here.
  *
  * @author Stephen Dawson-Haggerty <stevedh@eecs.berkeley.edu>
- * @author Mohammad Jamal Mohiuddin <mjmohiuddin@cdac.in> bug fixes
  */
 #include <lib6lowpan/ip.h>
 
@@ -27,6 +26,7 @@ module IPNeighborDiscoveryP {
     interface IPLower;
     interface IPAddress;
     interface Ieee154Address;
+    interface NeighbrCache;
   }
 } implementation {
 
@@ -56,7 +56,6 @@ module IPNeighborDiscoveryP {
 
   command error_t NeighborDiscovery.resolveAddress(struct in6_addr *addr,
                                                    ieee154_addr_t *link_addr) {
-    ieee154_panid_t panid = letohs(call Ieee154Address.getPanId());
 
     if (addr->s6_addr16[0] == htons(0xfe80)) {
       if (addr->s6_addr16[5] == htons(0x00FF) &&
@@ -101,13 +100,19 @@ module IPNeighborDiscoveryP {
     // iov_print(msg->ip6_data);
 
     if (call NeighborDiscovery.resolveAddress(&local_addr, &fr_addr.ieee_src) != SUCCESS) {
-      printf("IPND - local address resolution failed\n");
-      return FAIL;
+	if(call NeighbrCache.resolveIP(&local_addr,&fr_addr.ieee_src)!=SUCCESS) {
+	    	printf("IPND - local address resolution failed\n");
+      		return FAIL; 
+	}
+   
     }
 
     if (call NeighborDiscovery.resolveAddress(next, &fr_addr.ieee_dst) != SUCCESS) {
-      printf("IPND - next-hop address resolution failed\n");
-      return FAIL;
+	if(call NeighbrCache.resolveIP(next,&fr_addr.ieee_dst) != SUCCESS){
+      		printf("IPND - next-hop address resolution failed");
+		return FAIL;
+	}
+    
     }
     printf("l2 source: "); printf_ieee154addr(&fr_addr.ieee_src);
     printf("\n");
@@ -118,7 +123,37 @@ module IPNeighborDiscoveryP {
   }
 
   event void IPLower.recv(struct ip6_hdr *iph, void *payload, struct ip6_metadata *meta) {
-    signal IPForward.recv(iph, payload, meta);
+      if(iph->ip6_dst.s6_addr[0]!=0xff)	//unicast packets forward them
+    {	
+	    signal IPForward.recv(iph, payload, meta);
+    }
+    else
+    {
+	 if ((iph->ip6_dst.s6_addr[1] & 0x0f) <= 0x2)	//its a multicast address check whether it is all Router or all host
+	 {
+		
+		#ifndef NODE_HOST
+		if (((iph->ip6_dst.s6_addr[15] & 0x0f) == 0x2)) 
+		{			//its a all router address and check whether the node is router or not
+			signal IPForward.recv(iph, payload, meta);
+		}
+		#endif
+		if (((iph->ip6_dst.s6_addr[15] & 0x0f) == 0x1) )
+		{			//its a all host address and check whether the node is host or not
+	
+			signal IPForward.recv(iph, payload, meta);
+		}
+		if (((iph->ip6_dst.s6_addr[15] & 0xff) == 0x1A) )
+		{
+		
+			signal IPForward.recv(iph, payload, meta);
+
+		}else{  //for other NS multicast
+			signal IPForward.recv(iph,payload,meta);
+
+		}
+	}
+    }
   }
 
   event void IPLower.sendDone(struct send_info *status) {
@@ -127,4 +162,9 @@ module IPNeighborDiscoveryP {
 
   event void Ieee154Address.changed() {}
   event void IPAddress.changed(bool global_valid) {}
+  event void NeighbrCache.default_rtrlistempty(){}
+
+  event void NeighbrCache.NUD_reminder(struct in6_addr ip_address){}
+
+  event void NeighbrCache.prefixReg(){}
 }

@@ -82,6 +82,9 @@ configuration IPStackC {
   components new PoolC(struct in6_iid, N_CONCURRENT_SENDS) as FwdAddrPoolC;
   FwdP.Pool -> FwdAddrPoolC;
 
+  components NeighbrCacheP;
+  FwdP.RouterList->NeighbrCacheP;
+  FwdP.NeighbrCache->NeighbrCacheP;
 #ifdef PRINTFUART_ENABLED
   components new TimerMilliC();
   FwdP.PrintTimer -> TimerMilliC.Timer;

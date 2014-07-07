@@ -49,6 +49,13 @@ interface IPAddress {
    */
   command bool isLLAddress(struct in6_addr *addr);
 
+  /* Get the link-local Address of the node with the interface identifier be taken from the EUI-64 */
+
+  command bool getEUILLAddress(struct in6_addr *addr);
+
+  command error_t setAddress(struct in6_addr *addr);
+
+
   command error_t removeAddress();
 
   event void changed(bool valid);

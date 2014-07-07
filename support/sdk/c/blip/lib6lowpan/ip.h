@@ -168,6 +168,8 @@ enum {
     ICMP_TYPE_ROUTER_ADV            = 134,
     ICMP_TYPE_NEIGHBOR_SOL          = 135,
     ICMP_TYPE_NEIGHBOR_ADV          = 136,
+    ICMP_TYPE_DUPLICATE_REQ         = 157,
+    ICMP_TYPE_DUPLICATE_CONFIRM     = 158,
     ICMP_TYPE_RPL_CONTROL           = 155,
     ICMP_NEIGHBOR_HOPLIMIT          = 255,
 
